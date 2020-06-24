@@ -92,7 +92,7 @@ ni <- nb + 1000 # total number  of iterations
 nt <- 5 # thinning interval
 
 # .......................................................................
-# PREPARE MODEL TO RUN
+# RUN MODEL
 # .......................................................................
 
 # create model
