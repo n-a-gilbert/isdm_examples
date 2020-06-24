@@ -1,3 +1,5 @@
+# HARVEST-ONLY MODEL - does not use camera data
+
 # .......................................................................
 # REQUIRED PACKAGES
 # .......................................................................
@@ -18,11 +20,20 @@ cov <- st_read("covariates.shp")
 str(data)
 str(constants)
 
+# take only data/constants needed for harvest-only model
+data_harvest <- list(e = data$e, w = data$w,
+                     num = data$num, adj = data$adj,
+                     weights = data$weights, forest = data$forest,
+                     imperv = data$imperv)
+
+constants_harvest <- list(ncell = constants$ncell, ncounty = constants$ncounty, 
+                          low = constants$low, high = constants$high, k = constants$k)
+
 # .......................................................................
 # MODEL CODE
 # .......................................................................
 
-joint <- nimble::nimbleCode( {
+harvest_only <- nimble::nimbleCode( {
   
   # .............................................................
   # PRIORS
@@ -51,12 +62,6 @@ joint <- nimble::nimbleCode( {
     log(lambda[i]) <- min(s[i] + alpha + b_forest*forest[i] + b_imperv*imperv[i], 10)
     psi[i] <- 1 - exp(-lambda[i])
     z[i] ~ dbern(psi[i])
-  }
-  
-  # Camera submodel
-  for(j in 1:nsite){
-    muy[j] <- z[cell[j]]*p
-    y[j] ~ dbin(muy[j], nsurveys[j])
   }
   
   # Harvest submodel
@@ -98,9 +103,9 @@ nt <- 5 # thinning interval
 # .......................................................................
 
 # create model
-model <- nimble::nimbleModel(code = joint, 
-                             data = data, 
-                             constants = constants, 
+model <- nimble::nimbleModel(code = harvest_only, 
+                             data = data_harvest, 
+                             constants = constants_harvest, 
                              inits = inits())
 
 # check to see if everything is initialized
