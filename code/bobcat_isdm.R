@@ -116,6 +116,7 @@ inits <- function() {
 keepers <- c('psi', "lambda", 'b_forest', "b_imperv", "a_forest", "a_yday", "a_yday2")
 
 # Will have to run chains for much longer to approach convergence
+# running with 200 iterations took about 10 minutes on my laptop with 4 cores
 # to speed things up, particularly for longer chains, you can run chains in parallel
 # see: https://groups.google.com/g/nimble-users/c/RHH9Ybh7bSI
 nc <- 3 # number of chains
