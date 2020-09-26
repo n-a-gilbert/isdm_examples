@@ -4,6 +4,10 @@
 
 These models are written in NIMBLE, a language derived from BUGS. Unlike previous programs (WinBUGS, JAGS), NIMBLE models are programmable objects in R, but are compiled in C++ for speed. Therefore, prior to installing NIMBLE, you must have Rtools installed so the code can be compiled. Please see the [NIMBLE website](https://r-nimble.org/download) for instructions.
 
+### Focal species: bobcat (Lynx rufus)
+
+We provide example data and code for bobcat. In Wisconsin, bobcats are known to be associated with areas of greater forest cover and to avoid urban areas--hence, we use canopy cover and impervious cover within 5x5 km grid cells to predict bobcat occurrence. Camera data comes from 6/1/2018-10/14/2018, a period following parturition but before the harvest season (20 October 2018-31 January 2019).
+
 ### Data
 
 The data included in this repository consists of three objects:
