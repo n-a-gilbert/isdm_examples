@@ -20,7 +20,7 @@ More detail about each is as follows:
 
 #### constants
 
-* ncell : the number of grid cells (8.5x8.5 km)
+* ncell : the number of grid cells (5x5 km)
 * nsurveys: the number of week-long sampling occasions the camera was active for
 * cell : the identity of grid cells containing a camera
 * ncams : the number of cameras
