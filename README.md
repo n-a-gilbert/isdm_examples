@@ -37,8 +37,8 @@ More detail about each is as follows:
 * num: number of adjacent grid cells to each grid cell
 * adj: the identies of adjacent grid cells for each grid cell
 * weights: how neighboring grid cells are weighed. All = 1
-* forest: mean % canopy cover within each 8.5x8.5 km grid cell
-* imperv: mean % impervious cover within each 8.5x8.5 km grid cell
+* forest: mean % canopy cover within each 5x5 km grid cell
+* imperv: mean % impervious cover within each 5x5 km grid cell
 * cam_can: % canopy over of the 30x30m cell containing the camera coordinates
 * yday: matrix with ordinal date of the beginning of each survey occasion for each camera
 * yday2: matrix with ordinal date^2
