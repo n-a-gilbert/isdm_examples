@@ -47,3 +47,7 @@ More detail about each is as follows:
 
 Shapefile of covariates (vectorized grid).
 
+### Code
+
+Code for the three models is provided in the code folder; "bobcat_camera.R" is the camera-only model, "bobcat_harvest.R" is the harvest-only model, and "bobcat_isdm.R" is the integrated model. Code for the simulation study ("isdm_sim.R") is also provided in this folder.
+
