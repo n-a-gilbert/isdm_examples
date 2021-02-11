@@ -50,8 +50,7 @@ harvest <- nimble::nimbleCode( {
   # SDM - model for the latent state
   for(i in 1:ncell){
     log(lambda[i]) <- s[i] + b_forest*forest[i] + b_imperv*imperv[i]
-    psi[i] <- 1 - exp(-lambda[i])
-    z[i] ~ dbern(psi[i])
+    n[i] ~ dpois(lambda[i])
   }
   
   # Harvest submodel
@@ -77,7 +76,7 @@ inits <- function() {
              s = rep(0, base::length(data$num)))}
 
 # parameters to monitor
-keepers <- c('psi', "lambda", 'b_forest', "b_imperv")
+keepers <- c("lambda", 'b_forest', "b_imperv")
 
 data_harvest_only <- list(
   e = data$e, 
@@ -147,14 +146,14 @@ coda::traceplot(samples_mcmc[, 1:2])
 coda::gelman.diag(samples_mcmc[,1:2])
 
 # extract mean and SD occurrence probability of each grid cell
-samples <- do.call(rbind, samples_mcmc)
-psi <- samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'psi\\['))]
-psi_mean <- apply(psi, 2, mean)
-psi_sd <- apply(psi, 2, sd)
+samplesdf <- do.call(rbind, samples_mcmc)
+lambda <- samplesdf[, which(stringr::str_detect(string = colnames(samplesdf), pattern = 'lambda\\['))]
+lambda_mean <- apply(lambda, 2, mean)
+lambda_sd <- apply(lambda, 2, sd)
 
 # map mean and standard deviation of occurrence probability
 par(mfrow=c(1,1))
-cov$psi_mean <- psi_mean
-plot(cov["psi_mean"], border = NA)
-cov$psi_sd <- psi_sd
-plot(cov["psi_sd"], border = NA)
+cov$lambda_mean <- lambda_mean
+plot(cov["lambda_mean"], border = NA)
+cov$lambda_sd <- lambda_sd
+plot(cov["lambda_sd"], border = NA)

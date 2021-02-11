@@ -59,7 +59,7 @@ joint <- nimble::nimbleCode( {
     }}
   
   # hyperprior for detection random effect
-  sd_p ~ dunif(0, 2)
+  sd_p ~ dgamma(1, 2)
   
   # .............................................................
   # LIKELIHOOD
@@ -68,15 +68,14 @@ joint <- nimble::nimbleCode( {
   # SDM - model for the latent state
   for(i in 1:ncell){
     log(lambda[i]) <- s[i] + b_forest*forest[i] + b_imperv*imperv[i]
-    psi[i] <- 1 - exp(-lambda[i])
-    z[i] ~ dbern(psi[i])
+    n[i] ~ dpois(lambda[i])
   }
   
   # Camera submodel
   for(j in 1:ncams){
     for(k in 1:nsurveys[j]){
-      muy[j, k] <- z[cell[j]]*p[j, k]
-      logit(p[j, k]) <- a_forest*cam_can[j] + a_yday*yday[j, k] + a_yday2*yday2[j, k] + eps_p[j, k]
+      muy[j, k] <- 1 - pow(rho[j, k], n[cell[j]])
+      logit(rho[j, k]) <- a_forest*cam_can[j] + a_yday*yday[j, k] + a_yday2*yday2[j, k] + eps_p[j, k]
       y[j, k] ~ dbern(muy[j, k])
     }}
   
@@ -96,7 +95,7 @@ joint <- nimble::nimbleCode( {
 
 # function to provide random initial values for parameters
 inits <- function() {
-  base::list(z = rep(1, constants$ncell),
+  base::list(n = rep(1, constants$ncell),
              b_forest = runif(1, -1, 1),
              b_imperv = runif(1, -1, 1),
              a_forest = runif(1, -1, 1),
@@ -106,14 +105,14 @@ inits <- function() {
              eps_p = matrix(data = rnorm(length(data$y), 0, 2),
                             nrow = nrow(data$y),
                             ncol = ncol(data$y)),
-             p = matrix(data = runif(length(data$y), 0, 1),
+             rho = matrix(data = runif(length(data$y), 0, 1),
                         nrow = nrow(data$y),
                         ncol = ncol(data$y)),
              sd_p = runif(1, 0, 2), 
              s = rep(0, base::length(data$num)))}
 
 # parameters to monitor
-keepers <- c('psi', "lambda", 'b_forest', "b_imperv", "a_forest", "a_yday", "a_yday2")
+keepers <- c("lambda", 'b_forest', "b_imperv", "a_forest", "a_yday", "a_yday2")
 
 # Will have to run chains for much longer to approach convergence
 # running with 200 iterations took about 10 minutes on my laptop with 4 cores
@@ -165,15 +164,15 @@ coda::traceplot(samples_mcmc[, 1:5])
 # calculate Rhat convergence diagnostic for first five parameters
 coda::gelman.diag(samples_mcmc[,1:5])
 
-# extract mean and SD occurrence probability of each grid cell
-samples <- do.call(rbind, samples_mcmc)
-psi <- samples[, which(stringr::str_detect(string = colnames(samples), pattern = 'psi\\['))]
-psi_mean <- apply(psi, 2, mean)
-psi_sd <- apply(psi, 2, sd)
+# extract mean and SD lambda of each grid cell
+samplesdf <- do.call(rbind, samples_mcmc)
+lambda <- samplesdf[, which(stringr::str_detect(string = colnames(samplesdf), pattern = 'lambda\\['))]
+lambda_mean <- apply(lambda, 2, mean)
+lambda_sd <- apply(lambda, 2, sd)
 
-# map mean and standard deviation of occurrence probability
+# map mean and standard deviation of lambda
 par(mfrow=c(1,1))
-cov$psi_mean <- psi_mean
-plot(cov["psi_mean"], border = NA)
-cov$psi_sd <- psi_sd
-plot(cov["psi_sd"], border = NA)
+cov$lambda_mean <- lambda_mean
+plot(cov["lambda_mean"], border = NA)
+cov$lambda_sd <- lambda_sd
+plot(cov["lambda_sd"], border = NA)
