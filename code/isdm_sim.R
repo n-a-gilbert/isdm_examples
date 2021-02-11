@@ -69,8 +69,8 @@ percent_NA <- 0.75
 slope <- 1.5
 
 # number of MCMC iterations
-nb <- 500
-ni <- nb + 500
+nb <- 5000
+ni <- nb + 1000
 nc <- 3
 
 # fine-resolution grid
@@ -135,7 +135,7 @@ for(i in 1:nrow(scenarios)){
     mutate(cellID = row_number()) %>%
     dplyr::select(cellID, idF, idC, canopy, lambda, nF, yF1:yF3, nC, pC, pCMod, yC, geometry) %>%
     sf::st_as_sf(.)
-  
+
   # function to calculate neighbor structure of grid (for spatial smoothing)
   st_queen <- function(a, b = a) st_relate(a, b, pattern = "F***T****")
   
@@ -162,9 +162,9 @@ for(i in 1:nrow(scenarios)){
     ungroup(.) %>%
     dplyr::select(idF, yF1:yF3, cellID) %>%
     sf::st_drop_geometry(.)
-  
+
   if(scenarios[[i, "Scenario"]] == "Scenario1") {
-    
+
     data <- list(
       canopy = final$canopy,
       num = num,
@@ -196,7 +196,7 @@ for(i in 1:nrow(scenarios)){
           muy[j, k] <- 1 - pow(1 - p, N[cell[j]])
           y[j, k] ~ dbern(muy[j, k])
         }}
-      
+
     })
     
     car_inits <- function() {
@@ -301,7 +301,7 @@ for(i in 1:nrow(scenarios)){
         log(lambda[i]) <- s[i] + b1*canopy[i]
         N[i] ~ dpois(lambda[i])
       }
-      
+
       for(q in 1:nCellC){
         muP[q] <- pC[q]*sum(lambda[low[q]:high[q]])
         w[q] ~ dpois(muP[q])
@@ -502,39 +502,20 @@ for(i in 1:nrow(scenarios)){
     p_beta_results[[i]] <- p_beta_result
   }
 }
-
-lambs <- bind_rows(lambda_results)
+  
+lambs <- bind_rows(lambda_results) %>% 
+  full_join(scenarios)
 
 ggplot(lambs, aes(x = lambdaActual, y = lambdaEst)) + 
-  ylim(c(min(min(lambs$lambdaEst), min(lambs$lambdaActual)), 
-         max(max(lambs$lambdaActual), max(lambs$lambdaEst)))) + 
   geom_point(alpha = 0.5) +
   geom_abline(slope = 1, intercept = 0, color = "red", size = 1) + 
-  geom_smooth(method = "lm", size = 1, se = FALSE) +
-  coord_fixed() + 
-  facet_wrap(~Scenario) + 
+  facet_wrap(~Description) + 
   theme_classic()
 
-pb <- bind_rows(p_beta_results)  
+pb <- bind_rows(p_beta_results) %>% 
+  full_join(scenarios)
 
-ggplot(pb, aes(x = p)) + 
-  geom_histogram(alpha = 0.5) + 
-  geom_vline(xintercept = 0.5, color = "red", size = 2) + 
-  facet_wrap(~Scenario)
-
-ggplot(lambs) +
-  geom_sf(aes(geometry = geometry, fill = lambdaEst), color = NA) +
-  scale_fill_viridis_c() + 
-  facet_wrap(~Scenario)
-
-lambs %>% 
-  dplyr::select(cellID, lambdaActual, geometry) %>% 
-  distinct(.) %>% 
-  ggplot() + 
-  geom_sf(aes(geometry = geometry, fill = lambdaActual), color = NA) + 
-  scale_fill_viridis_c()
-
-ggplot(pb, aes(x = b1)) + 
-  geom_histogram(alpha = 0.5) + 
-  geom_vline(xintercept = 1, color = "red", size = 2) + 
-  facet_wrap(~Scenario)
+ggplot(filter(pb, parameter == "b1"), aes(x = mean, y = Description)) + 
+  geom_errorbar(aes(xmin = lower, xmax = upper), width = 0) + 
+  geom_point() +
+  geom_vline(xintercept = 1.5, color = "red", size = 2) 
