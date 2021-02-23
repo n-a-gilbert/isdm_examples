@@ -51,6 +51,10 @@ camera <- nimble::nimbleCode( {
   a_yday ~ dlogis(0, 1)
   # quadratic for date
   a_yday2 ~ dlogis(0, 1)
+  # coefficient for camera height
+  a_height ~ dlogis(0, 1)
+  # coefficient for target distance 
+  a_dist ~ dlogis(0, 1)
   
   # site/survey sampling occasion random effect
   for(j in 1:ncams){
@@ -75,7 +79,7 @@ camera <- nimble::nimbleCode( {
   for(j in 1:ncams){
     for(k in 1:nsurveys[j]){
       muy[j, k] <- 1 - pow(rho[j, k], n[cell[j]])
-      logit(rho[j, k]) <- a_forest*cam_can[j] + a_yday*yday[j, k] + a_yday2*yday2[j, k] + eps_p[j, k]
+      logit(rho[j, k]) <- a_forest*cam_can[j] + a_yday*yday[j, k] + a_yday2*yday2[j, k] + a_height*cam_height[j] + a_dist*cam_dist[j] +eps_p[j, k]
       y[j, k] ~ dbern(muy[j, k])
     }}
   
@@ -92,7 +96,9 @@ inits <- function() {
              b_imperv = runif(1, -1, 1),
              a_forest = runif(1, -1, 1),
              a_yday = runif(1, -1, 1), 
-             a_yday2 = runif(1, -1, 1), 
+             a_yday2 = runif(1, -1, 1),
+             a_height = runif(1, -1, 1), 
+             a_dist = runif(1, -1, 1),
              tau = rgamma(1, 1, 1),
              eps_p = matrix(data = rnorm(length(data$y), 0, 2),
                             nrow = nrow(data$y),
@@ -104,9 +110,9 @@ inits <- function() {
              s = rep(0, base::length(data$num)))}
 
 # parameters to monitor
-keepers <- c("lambda", 'b_forest', "b_imperv", "a_forest", "a_yday", "a_yday2")
+keepers <- c("lambda", 'b_forest', "b_imperv", "a_forest", "a_yday", "a_yday2", "a_height", "a_dist")
 
-# Will have to run chains for much longer to approach convergence
+# Will have to run chains for much longer (~40,000 iterations) to approach convergence
 # running with 200 iterations took about 10 minutes on my laptop with 4 cores
 # to speed things up, particularly for longer chains, you can run chains in parallel
 # see: https://groups.google.com/g/nimble-users/c/RHH9Ybh7bSI
@@ -127,7 +133,9 @@ data_camera_only <- list(y = data$y,
                          imperv = data$imperv, 
                          cam_can = data$cam_can, 
                          yday = data$yday, 
-                         yday2 = data$yday2)
+                         yday2 = data$yday2,
+                         cam_height = data$cam_height, 
+                         cam_dist = data$cam_dist)
 
 constants_camera_only <- list(ncell = constants$ncell, 
                               nsurveys = constants$nsurveys, 
@@ -165,7 +173,7 @@ samples <- nimble::runMCMC(c_model_mcmc,
 # .......................................................................
 
 # convert to mcmc object for inspection via coda package
-samples_mcmc <- coda::as.mcmc(lapply(samples, coda::mcmc))
+samples_mcmc <- coda::as.mcmc.list(lapply(samples, coda::mcmc))
 
 # Look at traceplots of the first five parameters
 par(mfrow=c(3,2))

@@ -43,6 +43,11 @@ harvest <- nimble::nimbleCode( {
   # regression coefficient for impervious cover
   b_imperv ~ dnorm(0, 2)
   
+  # intercept for linear function scaling grid- and county-level expected abundance
+  gamma0 ~ dnorm(0, 2)
+  # intercept for linear function scaling grid- and county-level expected abundance
+  gamma1 ~ dnorm(0, 2)
+  
   # .............................................................
   # LIKELIHOOD
   # .............................................................
@@ -55,11 +60,9 @@ harvest <- nimble::nimbleCode( {
   
   # Harvest submodel
   for(c in 1:ncounty){
-    # e: effort coefficient
-    # low & high: indices to account for number of cells within each county
-    mu_p[c] <- e[c]*sum(lambda[low[c]:high[c]])
-    w[c] ~ dpois(mu_p[c])
-  }
+    log(lambda_county[c]) <- gamma0 + gamma1*log(sum(lambda[low[c]:high[c]])) 
+    harvest[c] ~ dpois(effort[c]*lambda_county[c])
+    }
   
 } )
 
@@ -69,18 +72,20 @@ harvest <- nimble::nimbleCode( {
 
 # function to provide random initial values for parameters
 inits <- function() {
-  base::list(z = rep(1, constants$ncell),
+  base::list(n = rep(1, constants$ncell),
              b_forest = runif(1, -1, 1),
              b_imperv = runif(1, -1, 1),
+             gamma0 = runif(1, -1, 1), 
+             gamma1 = runif(1, -1, 1),
              tau = rgamma(1, 1, 1),
              s = rep(0, base::length(data$num)))}
 
 # parameters to monitor
-keepers <- c("lambda", 'b_forest', "b_imperv")
+keepers <- c("lambda", 'b_forest', "b_imperv", "gamma0", "gamma1")
 
 data_harvest_only <- list(
-  e = data$e, 
-  w = data$w, 
+  effort = data$effort, 
+  harvest = data$harvest, 
   num = data$num, 
   adj = data$adj, 
   weights = data$weights, 
@@ -95,7 +100,7 @@ constants_harvest_only <- list(
   neigh = constants$neigh
 )
 
-# Will have to run chains for much longer to approach convergence
+# Will have to run chains for much longer (~40,000 iterations) to approach convergence
 # running with 200 iterations took about 10 minutes on my laptop with 4 cores
 # to speed things up, particularly for longer chains, you can run chains in parallel
 # see: https://groups.google.com/g/nimble-users/c/RHH9Ybh7bSI
@@ -137,7 +142,7 @@ samples <- nimble::runMCMC(c_model_mcmc,
 # .......................................................................
 
 # convert to mcmc object for inspection via coda package
-samples_mcmc <- coda::as.mcmc(lapply(samples, coda::mcmc))
+samples_mcmc <- coda::as.mcmc.list(lapply(samples, coda::mcmc))
 
 # Look at traceplots of the first five parameters
 par(mfrow=c(1,2))

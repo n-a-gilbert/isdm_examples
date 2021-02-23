@@ -51,6 +51,11 @@ joint <- nimble::nimbleCode( {
   a_yday ~ dlogis(0, 1)
   # quadratic for date
   a_yday2 ~ dlogis(0, 1)
+  a_height ~ dlogis(0, 1)
+  a_dist ~ dlogis(0, 1)
+  
+  gamma0 ~ dnorm(0, 2)
+  gamma1 ~ dnorm(0, 2)
   
   # site/survey sampling occasion random effect
   for(j in 1:ncams){
@@ -75,16 +80,14 @@ joint <- nimble::nimbleCode( {
   for(j in 1:ncams){
     for(k in 1:nsurveys[j]){
       muy[j, k] <- 1 - pow(rho[j, k], n[cell[j]])
-      logit(rho[j, k]) <- a_forest*cam_can[j] + a_yday*yday[j, k] + a_yday2*yday2[j, k] + eps_p[j, k]
+      logit(rho[j, k]) <- a_forest*cam_can[j] + a_yday*yday[j, k] + a_yday2*yday2[j, k] + a_height*cam_height[j] + a_dist*cam_dist[j] + eps_p[j, k]
       y[j, k] ~ dbern(muy[j, k])
     }}
   
   # Harvest submodel
   for(c in 1:ncounty){
-    # e: effort coefficient
-    # low & high: indices to account for number of cells within each county
-    mu_p[c] <- e[c]*sum(lambda[low[c]:high[c]])
-    w[c] ~ dpois(mu_p[c])
+    log(lambda_county[c]) <- gamma0 + gamma1*log(sum(lambda[low[c]:high[c]])) 
+    harvest[c] ~ dpois(effort[c]*lambda_county[c])
   }
   
 } )
@@ -101,6 +104,10 @@ inits <- function() {
              a_forest = runif(1, -1, 1),
              a_yday = runif(1, -1, 1), 
              a_yday2 = runif(1, -1, 1), 
+             a_height = runif(1, -1, 1), 
+             a_dist = runif(1, -1, 1), 
+             gamma0 = runif(1, -1, 1), 
+             gamma1 = runif(1, -1, 1),
              tau = rgamma(1, 1, 1),
              eps_p = matrix(data = rnorm(length(data$y), 0, 2),
                             nrow = nrow(data$y),
@@ -112,7 +119,7 @@ inits <- function() {
              s = rep(0, base::length(data$num)))}
 
 # parameters to monitor
-keepers <- c("lambda", 'b_forest', "b_imperv", "a_forest", "a_yday", "a_yday2")
+keepers <- c("lambda", 'b_forest', "b_imperv", "a_forest", "a_yday", "a_yday2", "a_dist", "a_height", "gamma0", "gamma1")
 
 # Will have to run chains for much longer to approach convergence
 # running with 200 iterations took about 10 minutes on my laptop with 4 cores
@@ -156,7 +163,7 @@ samples <- nimble::runMCMC(c_model_mcmc,
 # .......................................................................
 
 # convert to mcmc object for inspection via coda package
-samples_mcmc <- coda::as.mcmc(lapply(samples, coda::mcmc))
+samples_mcmc <- coda::as.mcmc.list(lapply(samples, coda::mcmc))
 
 # Look at traceplots of the first five parameters
 par(mfrow=c(3,2))
