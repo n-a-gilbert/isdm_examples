@@ -32,8 +32,8 @@ More detail about each is as follows:
 #### data
 
 * y : a matrix with rows representing cameras and columns representing sampling occasions. 1 = bobcat detected during sampling occasion, 0 = bobcat NOT detected during sampling occasion, NA = camera not active during this sampling occasion
-* e: an effort bias term used in the harvest submodel. This is, for each county, the percent of hunters statewide who operated in a given county
-* w: the number of bobcats harvested in each county in 2018
+* effort: an effort bias term used in the harvest submodel. This is, for each county, the percent of hunters statewide who operated in a given county
+* harvest: the number of bobcats harvested in each county in 2018
 * num: number of adjacent grid cells to each grid cell
 * adj: the identies of adjacent grid cells for each grid cell
 * weights: how neighboring grid cells are weighed. All = 1
